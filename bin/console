@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+root=File.expand_path "#{File.dirname(__FILE__)}/.."
+$: << "#{root}/lib"
+
+require "bundler"
+Bundler.require
+
+require "irb"
+require "rspec-httpd"
+
+
+IRB.start
+ 

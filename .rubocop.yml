@@ -1,0 +1,61 @@
+AllCops:
+  Exclude:
+    - vendor/**/*
+    - spec/spec_helper.rb
+    - tmp/**/*
+    - mpx-api.gemspec
+    - bin/*
+    - scripts/*
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/NumericPredicate:
+  Enabled: false
+
+Naming/FileName:
+  Exclude:
+    - lib/rspec-httpd.rb
+
+Metrics/LineLength:
+  Max: 140
+  Exclude:
+    - spec/**/*
+
+Metrics/BlockLength:
+  Exclude:
+    - spec/**/*
+    - tasks/*.rake
+
+Metrics/ParameterLists:
+  Max: 9
+
+Metrics/MethodLength:
+  Max: 24
+
+Metrics/AbcSize:
+  Max: 20
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/ModuleFunction:
+  Enabled: false
+
+Style/SymbolArray:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
+
+Style/PercentLiteralDelimiters:
+  Enabled: false
+
+Lint/MissingCopEnableDirective:
+  Enabled: false
