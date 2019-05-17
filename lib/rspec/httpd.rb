@@ -8,16 +8,47 @@ end
 require_relative "httpd/version"
 require_relative "httpd/server"
 require_relative "httpd/client"
-require_relative "httpd/env"
+require_relative "httpd/config"
 
 module RSpec::Httpd
-  extend ::RSpec::Httpd::Env
+  extend self
 
-  extend Forwardable
-  delegate %i[http server client] => Env
-  delegate [:logger] => Env
+  attr_reader :config
+
+  # Set the configuration for the default client.
+  #
+  # See also: RSpec::Httpd.http
+  def configure(&block)
+    @config = Config.new.tap(&block)
+  end
+
+  def logger #:nodoc:
+    @logger ||= Logger.new(STDERR).tap { |logger| logger.level = Logger::INFO }
+  end
+
+  # builds and returns a client.
+  #
+  # You can use this method to retrieve a client connection to a server
+  # specified via host:, port:, and, optionally, a command.
+  def client(host:, port:, command: nil)
+    @clients ||= {}
+    @clients[[host, port, command]] ||= begin
+      Server.start!(host: host, port: port, command: command) if command
+      Client.new host: host, port: port
+    end
+  end
 
   private
+
+  # returns the default client
+  #
+  # The default client is the one configured via RSpec::Httpd.configure.
+  def http
+    config = ::RSpec::Httpd.config ||
+             raise("RSpec::Httpd configuration missing; run RSpec::Httpd.configure { |config| ... }")
+
+    client(host: config.host, port: config.port, command: config.command)
+  end
 
   def actual_response(client:, response:)
     return response if response

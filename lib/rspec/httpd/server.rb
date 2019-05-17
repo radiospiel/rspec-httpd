@@ -4,72 +4,68 @@ require "socket"
 require "timeout"
 
 module RSpec::Httpd
-  class Server
-    MAX_SLEEP = 10
+  module Server
+    MAX_STARTUP_TIME = 10
 
-    def running?
-      @running
-    end
+    extend self
 
-    def initialize(host:, port:, command:)
-      @host = host
-      @port = port
-      @command = command
-      @running = false
-    end
-
-    def start!
-      return if running?
-
-      log "Starting Server (using '#{@command}')"
-
-      pid = spawn(@command)
-      at_exit do
-        Process.kill("KILL", pid)
-        sleep 0.2
-        die "Cannot stop Server (at pid #{pid})" if port_open?
-        log "Stopped Server"
-      end
-
-      max_sleep = MAX_SLEEP
-
-      while max_sleep > 0
-        sleep 0.1
-        break if port_open?
-
-        max_sleep -= 0.1
-        next if max_sleep > 0
-
-        die "Cannot start Server (using '#{@command}')"
-      end
-
-      log "Started Server (using '#{@command}')"
-      @running = true
+    # builds and returns a server object.
+    #
+    # You can use this method to retrieve a client connection to a server
+    # specified via host:, port:, and, optionally, a command.
+    def start!(host:, port:, command:)
+      @servers ||= {}
+      @servers[[host, port, command]] ||= do_start(host, port, command)
     end
 
     private
 
-    def die(msg)
-      log msg
-      exit
-    end
+    def do_start(host, port, command)
+      logger = RSpec::Httpd.logger
+      logger.debug "Starting server: #{command}"
 
-    def log(msg)
-      STDERR.puts msg
-    end
+      pid = spawn(command)
 
-    def port_open?
-      begin
-        Timeout.timeout(0.01) do
-          s = TCPSocket.new(@host, @port)
-          s.close
-          return true
-        rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-          return false
+      at_exit do
+        begin
+          logger.debug "Stopping server at pid #{pid}: #{command}"
+          Process.kill("KILL", pid)
+          sleep 0.2
+        rescue Errno::ESRCH
         end
-      rescue Timeout::Error
+
+        die "Cannot stop server at pid #{pid}: #{command}" if port_open?(host, port)
       end
 
+      unless wait_for_server(host: host, port: port, pid: pid, timeout: MAX_STARTUP_TIME)
+        logger.error "server didn't start at http://#{host}:#{port} pid #{pid}: #{command}"
+        exit 1
+      end
+
+      logger.info "Started server at pid #{pid}: #{command}"
+      pid
+    end
+
+    def wait_for_server(host:, port:, pid:, timeout:)
+      while timeout > 0
+        sleep 0.1
+        return true if port_open?(host, port)
+        return false if Process.waitpid(pid, Process::WNOHANG)
+
+        timeout -= 0.1
+        next if timeout > 0
+
+        return false
+      end
+    end
+
+    def port_open?(host, port)
+      Timeout.timeout(0.01) do
+        s = TCPSocket.new(host, port)
+        s.close
+        return true
+      end
+    rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, Timeout::Error
       false
     end
   end
