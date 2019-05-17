@@ -52,26 +52,31 @@ module RSpec::Httpd
     private
 
     def run_request(request_klass, url, body:, headers:)
-      @result = nil
+      # reset all results from previous run
+      @request = @response = @headers = @result = nil
 
-      build_request!(request_klass, url, body: body, headers: headers)
-      log_request!
-      @response = Net::HTTP.start(host, port) { |http| http.request(request) }
-    end
+      @response = Net::HTTP.start(host, port) do |http|
+        @request = build_request(request_klass, url, body: body, headers: headers)
 
-    def build_request!(request_klass, url, body:, headers:)
-      @request = request_klass.new url, headers
-      if body
-        @request["Content-Type"] = "application/json"
-        @request.body = JSON.generate body
+        log_request(request)
+        http.request(request)
       end
     end
 
-    def log_request!
+    def build_request(request_klass, url, body:, headers:)
+      request_klass.new(url, headers).tap do |request|
+        if body
+          request["Content-Type"] = "application/json"
+          request.body = JSON.generate(body)
+        end
+      end
+    end
+
+    def log_request(request)
       if request.body
-        RSpec::Httpd.logger.info "#{request.method} #{request.uri} #{body.inspect[0..100]}"
+        RSpec::Httpd.logger.info "#{request.method} #{request.path} #{request.body.inspect[0..100]}"
       else
-        RSpec::Httpd.logger.info "#{request.method} #{request.uri}"
+        RSpec::Httpd.logger.info "#{request.method} #{request.path}"
       end
     end
 
