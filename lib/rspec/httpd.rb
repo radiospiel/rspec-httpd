@@ -51,33 +51,26 @@ module RSpec::Httpd
     client(host: config.host, port: config.port, command: config.command)
   end
 
-  def actual_response(client:, response:)
-    response || client.last_result
-  end
-
   public
 
-  def expect_response(expected = nil, status: nil, client: nil, response: nil)
+  def expect_response(expected = nil, status: nil, client: nil)
     client ||= http
-    actual = actual_response(client: client, response: response)
-
-    # do_expect_response is implemented in RSpec::Httpd::Expectation, and mixed in
-    # here, because it needs access to the expect() implementation.
-
-    request = client.last_request
 
     # only check status? This lets us write
     #
     #    expect_response 201
     #
     if expected.is_a?(Integer) && status.nil?
-      expect(actual.status).to eq(expected)
+      expect(client.status).to eq(expected)
       return
     end
 
-    expect(actual.status).to eq(status || 200)
+    # do_expect_last_request is implemented in RSpec::Httpd::Expectation, and mixed in
+    # here, because it needs access to the expect() implementation.
+
+    expect(client.status).to eq(status || 200)
     unless expected.nil?
-      do_expect_response_body(expected: expected, actual: actual, request: request)
+      do_expect_last_request(expected: expected, client: client)
     end
   end
 

@@ -3,18 +3,7 @@ require "json"
 
 module RSpec::Httpd
   class Client
-    Get     = ::Net::HTTP::Get
-    Post    = ::Net::HTTP::Post
-    Put     = ::Net::HTTP::Put
-    Delete  = ::Net::HTTP::Delete
-
-    attr_reader :last_response
-    attr_reader :last_request
-
-    def last_result
-      @last_result ||= ResponseParser.parse(last_response)
-    end
-
+    # host and port. Set at initialization
     attr_reader :host
     attr_reader :port
 
@@ -22,47 +11,89 @@ module RSpec::Httpd
       @host, @port = host, port
     end
 
+    # request, response, and status, set during a request/response cycle
+    attr_reader :request
+    attr_reader :response
+
+    def status
+      Integer(response.code)
+    end
+
+    # returns the headers of the latest response
+    def headers
+      @headers ||= HeadersHash.new(response)
+    end
+
+    # returns the parsed response of the latest request
+    def result
+      @result ||= ResponseParser.parse(response)
+    end
+
+    # A GET request
     def get(url, headers: {})
-      request(Get, url, body: nil, headers: headers)
+      run_request(::Net::HTTP::Get, url, body: nil, headers: headers)
     end
 
+    # A POST request
     def post(url, body, headers: {})
-      request(Post, url, body: body, headers: headers)
+      run_request(::Net::HTTP::Post, url, body: body, headers: headers)
     end
 
+    # A PUT request
     def put(url, body, headers: {})
-      request(Put, url, body: body || {}, headers: headers)
+      run_request(::Net::HTTP::Put, url, body: body || {}, headers: headers)
     end
 
+    # A DELETE request
     def delete(url, headers: {})
-      request(Delete, url, body: nil, headers: headers)
+      run_request(::Net::HTTP::Delete, url, body: nil, headers: headers)
     end
 
     private
 
-    def request(request_klass, url, body:, headers:)
-      @last_result = nil
-      @last_request = build_request(request_klass, url, body: body, headers: headers)
-      @last_response = Net::HTTP.start(host, port) { |http| http.request(@last_request) }
+    def run_request(request_klass, url, body:, headers:)
+      @result = nil
+
+      build_request!(request_klass, url, body: body, headers: headers)
+      log_request!
+      @response = Net::HTTP.start(host, port) { |http| http.request(request) }
     end
 
-    def build_request(request_klass, url, body:, headers:)
-      request = request_klass.new url, headers
+    def build_request!(request_klass, url, body:, headers:)
+      @request = request_klass.new url, headers
       if body
-        request["Content-Type"] = "application/json"
-        request.body = JSON.generate body
+        @request["Content-Type"] = "application/json"
+        @request.body = JSON.generate body
       end
-
-      log_request(request, body: body)
-
-      request
     end
 
-    def log_request(request, body: nil)
-      if body
+    def log_request!
+      if request.body
         RSpec::Httpd.logger.info "#{request.method} #{request.uri} #{body.inspect[0..100]}"
       else
         RSpec::Httpd.logger.info "#{request.method} #{request.uri}"
+      end
+    end
+
+    class HeadersHash < Hash
+      def initialize(response)
+        response.each_header do |k, v|
+          case self[k]
+          when Array then self[k].concat v
+          when nil   then self[k] = v
+          else            self[k].concat(v)
+          end
+        end
+      end
+
+      def [](key)
+        super key.downcase
+      end
+
+      private
+
+      def []=(key, value)
+        super key.downcase, value
       end
     end
 

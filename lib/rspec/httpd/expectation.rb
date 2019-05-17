@@ -3,9 +3,11 @@ require "forwardable"
 require "logger"
 
 module RSpec::Httpd::Expectation
-  def do_expect_response_body(expected:, actual:, request:)
+  def do_expect_last_request(expected:, client:)
+    actual = client.result
+
     ctx = {
-      request: request, actual: actual, expected: expected
+      request: client.request, actual: actual, expected: expected
     }
 
     case expected
