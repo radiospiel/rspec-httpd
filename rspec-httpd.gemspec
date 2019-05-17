@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.email       = "eno@open-lab.org"
   s.homepage    = "https://github.com/radiospiel/rspec-httpd"
   s.license     = "Nonstandard"
-  s.files       = `git ls-files`.split($OUTPUT_RECORD_SEPARATOR).reject { |f| f.match(%r{tasks/|spec/|log/|^\.}) }
+  s.files       = `git ls-files`.split.grep(/README|VERSION|lib\//)
 
   # Runtime dependencies of this gem:
   # s.add_dependency 'activesupport', '~> 4.2.10'
