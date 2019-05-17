@@ -1,4 +1,5 @@
 require "net/http"
+require "json"
 
 module RSpec::Httpd
   class Client
@@ -8,13 +9,17 @@ module RSpec::Httpd
     Delete  = ::Net::HTTP::Delete
 
     attr_reader :last_response
+    attr_reader :last_request
+
+    def last_result
+      @last_result ||= ResponseParser.parse(last_response)
+    end
 
     attr_reader :host
     attr_reader :port
 
     def initialize(host:, port:)
-      @host = host
-      @port = port
+      @host, @port = host, port
     end
 
     def get(url, headers: {})
@@ -35,7 +40,31 @@ module RSpec::Httpd
 
     private
 
-    require "json"
+    def request(request_klass, url, body:, headers:)
+      @last_result = nil
+      @last_request = build_request(request_klass, url, body: body, headers: headers)
+      @last_response = Net::HTTP.start(host, port) { |http| http.request(@last_request) }
+    end
+
+    def build_request(request_klass, url, body:, headers:)
+      request = request_klass.new url, headers
+      if body
+        request["Content-Type"] = "application/json"
+        request.body = JSON.generate body
+      end
+
+      log_request(request, body: body)
+
+      request
+    end
+
+    def log_request(request, body: nil)
+      if body
+        RSpec::Httpd.logger.info "#{request.method} #{request.uri} #{body.inspect[0..100]}"
+      else
+        RSpec::Httpd.logger.info "#{request.method} #{request.uri}"
+      end
+    end
 
     module ResponseParser
       def self.parse(response)
@@ -56,41 +85,6 @@ module RSpec::Httpd
 
       def status
         Integer(__response__.code)
-      end
-    end
-
-    def request(request_klass, url, body:, headers:)
-      @last_response = do_request(request_klass, url, body: body, headers: headers)
-      @last_result = nil
-    end
-
-    public
-
-    def last_result
-      @last_result ||= ResponseParser.parse(last_response)
-    end
-
-    private
-
-    def do_request(request_klass, url, body: nil, headers:)
-      Net::HTTP.start(host, port) do |http|
-        request = request_klass.new url, headers
-
-        if body
-          request["Content-Type"] = "application/json"
-          request.body = JSON.generate body
-        end
-
-        log_request request, body: body
-        http.request request
-      end
-    end
-
-    def log_request(request, body: nil)
-      if body
-        RSpec::Httpd.logger.info "#{request.method} #{request.uri} #{body.inspect[0..100]}"
-      else
-        RSpec::Httpd.logger.info "#{request.method} #{request.uri}"
       end
     end
   end

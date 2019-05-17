@@ -62,3 +62,9 @@ Lint/MissingCopEnableDirective:
 
 Style/ParallelAssignment:
   Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Enabled: false
