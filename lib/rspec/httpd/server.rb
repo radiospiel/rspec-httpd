@@ -34,7 +34,8 @@ module RSpec::Httpd
         rescue Errno::ESRCH
         end
 
-        die "Cannot stop server at pid #{pid}: #{command}" if port_open?(host, port)
+        logger.warn "Cannot stop server at pid #{pid}: #{command}" if port_open?(host, port)
+        exit 0
       end
 
       unless wait_for_server(host: host, port: port, pid: pid, timeout: MAX_STARTUP_TIME)
