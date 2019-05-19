@@ -11,10 +11,7 @@ Gem::Specification.new do |s|
   s.files       = `git ls-files`.split.grep(%r{README|VERSION|lib/})
 
   # Runtime dependencies of this gem:
-  # s.add_dependency 'activesupport', '~> 4.2.10'
-  # s.add_dependency 'expectation',   '1.1.1'
-  # s.add_dependency 'faraday',       '> 0.9'
-  # s.add_dependency 'uri_template',  '~> 0.7', '>= 0.7.0'
+  s.add_dependency "expectation", "1.1.1"
 
   # Gems for dev and test env:
   s.add_development_dependency "rake",        "~> 12.0"

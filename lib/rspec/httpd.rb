@@ -1,6 +1,11 @@
 require "rspec/core"
 require "forwardable"
 require "logger"
+require "expectation"
+
+# rubocop:disable Metrics/AbcSize
+# rubocop:disable Metrics/CyclomaticComplexity
+# rubocop:disable Metrics/PerceivedComplexity
 
 module RSpec::Httpd
 end
@@ -9,7 +14,7 @@ require_relative "httpd/version"
 require_relative "httpd/server"
 require_relative "httpd/client"
 require_relative "httpd/config"
-require_relative "httpd/expectation"
+require_relative "httpd/expectation_failed"
 
 module RSpec::Httpd
   extend self
@@ -54,6 +59,10 @@ module RSpec::Httpd
   public
 
   def expect_response(expected = nil, status: nil, client: nil)
+    if expected.nil? && block_given?
+      expected = yield
+    end
+
     client ||= http
 
     # only check status? This lets us write
@@ -69,10 +78,13 @@ module RSpec::Httpd
     # here, because it needs access to the expect() implementation.
 
     expect(client.status).to eq(status || 200)
-    unless expected.nil?
-      do_expect_last_request(expected: expected, client: client)
+    return if expected.nil?
+
+    begin
+      # expect! comes from the expectation gem
+      expect! client.result => expected
+    rescue ::Expectation::Matcher::Mismatch
+      raise ExpectationFailed.new($!, client.request)
     end
   end
-
-  include RSpec::Httpd::Expectation
 end

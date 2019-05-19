@@ -1,9 +1,9 @@
 AllCops:
   Exclude:
+    - ./*.gemspec
     - vendor/**/*
     - spec/spec_helper.rb
     - tmp/**/*
-    - mpx-api.gemspec
     - bin/*
     - scripts/*
 
