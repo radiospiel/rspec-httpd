@@ -63,6 +63,8 @@ module RSpec::Httpd
       expected = yield
     end
 
+    expected = stringify_hash(expected) if expected.is_a?(Hash)
+
     client ||= http
 
     # only check status? This lets us write
@@ -83,8 +85,19 @@ module RSpec::Httpd
     begin
       # expect! comes from the expectation gem
       expect! client.result => expected
-    rescue ::Expectation::Matcher::Mismatch
-      raise ExpectationFailed.new($!, request: client.request, response: client.response), cause: nil
+    rescue ::Expectation::Matcher::Mismatch => e
+      raise ExpectationFailed.new(e, request: client.request, response: client.response), cause: nil
+    end
+  end
+
+  private
+
+  def stringify_hash(hsh)
+    return unless hsh
+
+    hsh.inject({}) do |r, (k, v)|
+      k = k.to_s if k.is_a?(Symbol)
+      r.update k => v
     end
   end
 end

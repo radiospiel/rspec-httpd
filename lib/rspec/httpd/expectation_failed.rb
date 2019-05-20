@@ -9,6 +9,7 @@ class RSpec::Httpd::ExpectationFailed < RuntimeError
 
   def to_s
     parts = []
+    parts.push(original_error.to_s)
     parts.push("=== #{request.method} #{request.path} =====================")
     parts.push("> " + request.body.gsub("\n", "\n> ")) if request.body
     parts.push("--- response ------------------------------------")
