@@ -1,39 +1,19 @@
-class RSpec::Httpd::ExpectationFailed < RuntimeError
-  attr_reader :original_error, :request
+# rubocop:disable Metrics/AbcSize
 
-  def initialize(original_error, request)
-    @original_error, @request = original_error, request
+class RSpec::Httpd::ExpectationFailed < RuntimeError
+  attr_reader :original_error, :request, :response
+
+  def initialize(original_error, request:, response:)
+    @original_error, @request, @response = original_error, request, response
   end
 
   def to_s
-    "#{request_info}: #{original_error}"
-  end
-
-  private
-
-  def request_info
-    request_info = "#{request.method} #{request.path}"
-    
-    body = request.body
-    return request_info unless body
-
-    "#{request_info}#{body_info(parsed_body(body) || body)}"
-  end
-
-  def parsed_body(body)
-    JSON.parse(body)
-  rescue StandardError
-    nil
-  end
-
-  def body_info(body)
-    body = parsed_body(body) || body
-
-    case body
-    when Hash
-      body.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")
-    else
-      body.inspect
-    end
+    parts = []
+    parts.push("=== #{request.method} #{request.path} =====================")
+    parts.push("> " + request.body.gsub("\n", "\n> ")) if request.body
+    parts.push("--- response ------------------------------------")
+    parts.push("< " + response.body.gsub("\n", "\n< ")) if response.body
+    parts.push("==================================================================")
+    parts.join("\n")
   end
 end

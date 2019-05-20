@@ -84,7 +84,7 @@ module RSpec::Httpd
       # expect! comes from the expectation gem
       expect! client.result => expected
     rescue ::Expectation::Matcher::Mismatch
-      raise ExpectationFailed.new($!, client.request)
+      raise ExpectationFailed.new($!, request: client.request, response: client.response), cause: nil
     end
   end
 end
