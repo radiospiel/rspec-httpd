@@ -13,7 +13,9 @@ class RSpec::Httpd::ExpectationFailed < RuntimeError
 
   def request_info
     request_info = "#{request.method} #{request.path}"
-    return request_info unless request.body
+    
+    body = request.body
+    return request_info unless body
 
     "#{request_info}#{body_info(parsed_body(body) || body)}"
   end
