@@ -71,22 +71,20 @@ module RSpec::Httpd
     #
     #    expect_response 201
     #
-    if expected.is_a?(Integer) && status.nil?
-      expect(client.status).to eq(expected)
-      return
-    end
+    expected_status = expected.is_a?(Integer) && status.nil? ? expected : status || 200
 
-    # do_expect_last_request is implemented in RSpec::Httpd::Expectation, and mixed in
-    # here, because it needs access to the expect() implementation.
+    request, response = client.request, client.response
 
-    expect(client.status).to eq(status || 200)
-    return if expected.nil?
+    expect(client.status).to eq(expected_status), 
+      "status should be #{expected_status}, but is #{client.status}, on '#{request.method} #{request.path}'"
+
+    return if expected.nil? || expected.is_a?(Integer)
 
     begin
       # expect! comes from the expectation gem
       expect! client.result => expected
     rescue ::Expectation::Matcher::Mismatch => e
-      raise ExpectationFailed.new(e, request: client.request, response: client.response), cause: nil
+      raise ExpectationFailed.new(e, request: request, response: response), cause: nil
     end
   end
 
