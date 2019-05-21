@@ -34,6 +34,11 @@ module RSpec::Httpd
       run_request(::Net::HTTP::Get, url, body: nil, headers: headers)
     end
 
+    # A HEAD request
+    def head(url, headers: {})
+      run_request(::Net::HTTP::Head, url, body: nil, headers: headers)
+    end
+
     # A POST request
     def post(url, body, headers: {})
       run_request(::Net::HTTP::Post, url, body: body, headers: headers)
@@ -104,6 +109,8 @@ module RSpec::Httpd
 
     module ResponseParser
       def self.parse(response)
+        return nil if response.body.nil?
+
         content_type = response["content-type"]
 
         result = if content_type&.include?("application/json")
