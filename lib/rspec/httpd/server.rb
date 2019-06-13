@@ -22,16 +22,34 @@ module RSpec::Httpd
 
     def do_start(host, port, command)
       logger = RSpec::Httpd.logger
+
+      if port_open?(host, port)
+        logger.error "A process is already running on #{host}:#{port}"
+        exit 2
+      end
+
       logger.debug "Starting server: #{command}"
 
-      pid = spawn(command)
+      # start child process in a separate process group. at exit we'll
+      # kill the entire process group. This helps if the started process
+      # spawns another child again.
+      pid = spawn(command, pgroup: true)
+      pgid = Process.getpgid(pid)
 
       at_exit do
         begin
-          logger.debug "Stopping server at pid #{pid}: #{command}"
-          Process.kill("KILL", pid)
+          logger.debug "Terminating server in pgid #{pgid}: #{command}"
+          Process.kill("TERM", -pgid)
           sleep 0.2
         rescue Errno::ESRCH
+        end
+
+        if port_open?(host, port)
+          begin
+            logger.debug "Killing server in pgid #{pgid}: #{command}"
+            Process.kill("KILL", -pgid)
+          rescue Errno::ESRCH, Errno::EPERM
+          end
         end
 
         logger.warn "Cannot stop server at pid #{pid}: #{command}" if port_open?(host, port)

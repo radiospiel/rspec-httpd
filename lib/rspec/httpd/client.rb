@@ -1,6 +1,34 @@
 require "net/http"
 require "json"
 
+class Net::HTTPResponse
+  def headers
+    @headers ||= HeadersHash.new(self)
+  end
+
+  class HeadersHash < Hash
+    def initialize(response)
+      response.each_header do |k, v|
+        case self[k]
+        when Array then self[k].concat v
+        when nil   then self[k] = v
+        else            self[k].concat(v)
+        end
+      end
+    end
+
+    def [](key)
+      super key.downcase
+    end
+
+    private
+
+    def []=(key, value)
+      super key.downcase, value
+    end
+  end
+end
+
 module RSpec::Httpd
   class Client
     # host and port. Set at initialization
@@ -17,11 +45,6 @@ module RSpec::Httpd
 
     def status
       Integer(response.code)
-    end
-
-    # returns the headers of the latest response
-    def headers
-      @headers ||= HeadersHash.new(response)
     end
 
     # returns the parsed response of the latest request
@@ -82,28 +105,6 @@ module RSpec::Httpd
         RSpec::Httpd.logger.info "#{request.method} #{request.path} #{request.body.inspect[0..100]}"
       else
         RSpec::Httpd.logger.info "#{request.method} #{request.path}"
-      end
-    end
-
-    class HeadersHash < Hash
-      def initialize(response)
-        response.each_header do |k, v|
-          case self[k]
-          when Array then self[k].concat v
-          when nil   then self[k] = v
-          else            self[k].concat(v)
-          end
-        end
-      end
-
-      def [](key)
-        super key.downcase
-      end
-
-      private
-
-      def []=(key, value)
-        super key.downcase, value
       end
     end
 
