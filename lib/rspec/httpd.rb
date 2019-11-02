@@ -29,7 +29,7 @@ module RSpec::Httpd
   end
 
   def logger #:nodoc:
-    @logger ||= Logger.new(STDERR).tap { |logger| logger.level = Logger::INFO }
+    @config.logger
   end
 
   # builds and returns a client.
