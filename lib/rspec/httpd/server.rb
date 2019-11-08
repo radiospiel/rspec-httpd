@@ -3,26 +3,45 @@
 require "socket"
 require "timeout"
 
+module RSpec
+end
+
 module RSpec::Httpd
   module Server
     MAX_STARTUP_TIME = 10
 
     extend self
 
+    def logger
+      # If this file is required as-is, without loading all of rspec/httpd,
+      #  ::RSpec::Httpd does not provide a logger. In that case we polyfill
+      # a default logger to STDERR.
+      #
+      # Doing so lets use this file as is; which lets one use the
+      #
+      #   RSpec::Httpd::Server.start! ...
+      #
+      # method.
+      if ::RSpec::Httpd.respond_to?(:logger)
+        ::RSpec::Httpd.logger
+      else
+        @logger ||= ::Logger.new(STDERR, level: :info)
+      end
+    end
+
     # builds and returns a server object.
     #
     # You can use this method to retrieve a client connection to a server
     # specified via host:, port:, and, optionally, a command.
-    def start!(host:, port:, command:)
+    def start!(host: "0.0.0.0", port:, command:, logger: nil)
       @servers ||= {}
       @servers[[host, port, command]] ||= do_start(host, port, command)
+      @logger = logger if logger
     end
 
     private
 
     def do_start(host, port, command)
-      logger = RSpec::Httpd.logger
-
       if port_open?(host, port)
         logger.error "A process is already running on #{host}:#{port}"
         exit 2

@@ -1,5 +1,4 @@
 require "rspec/core"
-require "forwardable"
 require "logger"
 require "expectation"
 
@@ -73,18 +72,19 @@ module RSpec::Httpd
     #
     expected_status = expected.is_a?(Integer) && status.nil? ? expected : status || 200
 
-    request, response = client.request, client.response
+    response = client.response
+    request  = response.request
 
-    expect(client.status).to eq(expected_status), 
-      "status should be #{expected_status}, but is #{client.status}, on '#{request.method} #{request.path}'"
+    expect(response.status).to eq(expected_status), 
+      "status should be #{expected_status}, but is #{response.status}, on '#{request}'"
 
     return if expected.nil? || expected.is_a?(Integer)
 
     begin
       # expect! comes from the expectation gem
-      expect! client.result => expected
+      expect! response.content => expected
     rescue ::Expectation::Matcher::Mismatch => e
-      raise ExpectationFailed.new(e, request: request, response: response), cause: nil
+      raise ExpectationFailed.new(e, response: response), cause: nil
     end
   end
 
