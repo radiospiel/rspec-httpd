@@ -1,5 +1,4 @@
-$: << "../simple-http/lib"
-require "simple/http"
+require "simple-http"
 
 module RSpec::Httpd
   class Client < Simple::HTTP
