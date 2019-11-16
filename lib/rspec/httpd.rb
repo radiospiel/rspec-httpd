@@ -75,8 +75,8 @@ module RSpec::Httpd
     response = client.response
     request  = response.request
 
-    expect(response.status).to eq(expected_status), 
-      "status should be #{expected_status}, but is #{response.status}, on '#{request}'"
+    expect(response.status).to eq(expected_status),
+                               "status should be #{expected_status}, but is #{response.status}, on '#{request}'"
 
     return if expected.nil? || expected.is_a?(Integer)
 
