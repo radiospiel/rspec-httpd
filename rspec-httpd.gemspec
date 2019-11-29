@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
 
   # Runtime dependencies of this gem:
   s.add_dependency "expectation", "1.1.1"
-  s.add_dependency "simple-http", "~> 0.3.1"
+  s.add_dependency "simple-http", "~> 0.3.2"
 
   # Gems for dev and test env:
   s.add_development_dependency "rake",        "~> 12.0"
