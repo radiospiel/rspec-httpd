@@ -75,8 +75,23 @@ module RSpec::Httpd
     response = client.response
     request  = response.request
 
-    expect(response.status).to eq(expected_status),
-                               "status should be #{expected_status}, but is #{response.status}, on '#{request}'"
+    if response.status != expected_status
+      error_message = <<~MSG
+        #{response.class}
+        #{response.request.class}
+        HTTP status should be #{expected_status}, but is #{response.status}, on '#{request}'
+      MSG
+
+      if response.status >= 400
+        error_message += <<~MSG
+        ---- response.body ----------------------------------------------------
+        #{response.body}
+        -----------------------------------------------------------------------
+        MSG
+      end
+
+      expect(response.status).to eq(expected_status), error_message
+    end
 
     return if expected.nil? || expected.is_a?(Integer)
 

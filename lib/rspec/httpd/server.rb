@@ -49,8 +49,12 @@ module RSpec::Httpd
         logger.error "A process is already running on #{host}:#{port}"
         exit 2
       end
-
-      logger.debug "Starting server: #{command}"
+      
+      STDERR.puts <<~MSG
+         ==== Starting server ================================================================
+         #{command}
+         =====================================================================================
+       MSG
 
       # start child process in a separate process group. at exit we'll
       # kill the entire process group. This helps if the started process
