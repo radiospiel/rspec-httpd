@@ -7,7 +7,7 @@ class RSpec::Httpd::Config
   def initialize
     self.host = "127.0.0.1"
     self.port = 12_345
-    self.command = "bundle exec rackup -E test -p 12345"
+    self.command = nil
     self.logger = Logger.new(STDERR).tap { |logger| logger.level = Logger::INFO }
   end
 end

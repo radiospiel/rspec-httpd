@@ -37,24 +37,32 @@ module RSpec::Httpd
     # You can use this method to retrieve a client connection to a server
     # specified via host:, port:, and, optionally, a command.
     def start!(host: "0.0.0.0", port:, command:, logger: nil)
+      puts "start! command: #{command.inspect}"
       @servers ||= {}
-      @servers[[host, port, command]] ||= do_start(host, port, command)
+      @servers[[host, port, command]] ||= command ? do_start(host, port, command) : check_server(host, port)
       @logger = logger if logger
     end
 
     private
+
+    def check_server(host, port)
+      unless wait_for_server(host: host, port: port, timeout: MAX_STARTUP_TIME)
+        logger.error "cannot reach server at http://#{host}:#{port}"
+        exit 1
+      end
+    end
 
     def do_start(host, port, command)
       if port_open?(host, port)
         logger.error "A process is already running on #{host}:#{port}"
         exit 2
       end
-      
+
       STDERR.puts <<~MSG
-         ==== Starting server ================================================================
-         #{command}
-         =====================================================================================
-       MSG
+        ==== Starting server ================================================================
+        #{command}
+        =====================================================================================
+      MSG
 
       # start child process in a separate process group. at exit we'll
       # kill the entire process group. This helps if the started process
@@ -91,11 +99,11 @@ module RSpec::Httpd
       pid
     end
 
-    def wait_for_server(host:, port:, pid:, timeout:)
+    def wait_for_server(host:, port:, pid: nil, timeout:)
       while timeout > 0
         sleep 0.1
         return true if port_open?(host, port)
-        return false if Process.waitpid(pid, Process::WNOHANG)
+        return false if pid && Process.waitpid(pid, Process::WNOHANG)
 
         timeout -= 0.1
         next if timeout > 0
