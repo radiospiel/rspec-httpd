@@ -1,7 +1,5 @@
 # rubocop:disable Lint/HandleExceptions
 # rubocop:disable Metrics/AbcSize
-# rubocop:disable Metrics/CyclomaticComplexity
-# rubocop:disable Metrics/MethodLength
 
 require "socket"
 require "timeout"
