@@ -70,24 +70,13 @@ module RSpec::Httpd
       pid = spawn(command, pgroup: true)
       pgid = Process.getpgid(pid)
 
+      # Install an at_exit handler. This will kill the server. The command
+      # argument is passed in for logging only.
       at_exit do
-        begin
-          logger.debug "Terminating server in pgid #{pgid}: #{command}"
-          Process.kill("TERM", -pgid)
-          sleep 0.2
-        rescue Errno::ESRCH
-        end
-
-        if port_open?(host, port)
-          begin
-            logger.debug "Killing server in pgid #{pgid}: #{command}"
-            Process.kill("KILL", -pgid)
-          rescue Errno::ESRCH, Errno::EPERM
-          end
-        end
+        kill_server "TERM", pgid, command: command, sleep: 0.2 if port_open?(host, port)
+        kill_server "KILL", pgid, command: command, sleep: 0.2 if port_open?(host, port)
 
         logger.warn "Cannot stop server at pid #{pid}: #{command}" if port_open?(host, port)
-        exit 0
       end
 
       unless wait_for_server(host: host, port: port, pid: pid, timeout: MAX_STARTUP_TIME)
@@ -97,6 +86,14 @@ module RSpec::Httpd
 
       logger.info "Started server at pid #{pid}: #{command}"
       pid
+    end
+
+    def kill_server(signal, pgid, command:, sleep: nil)
+      logger.debug "Kill server in pgid #{pgid} w/#{signal}: #{command}"
+
+      Process.kill(signal, -pgid)
+      Kernel.sleep(sleep) if sleep
+    rescue Errno::ESRCH, Errno::EPERM
     end
 
     def wait_for_server(host:, port:, pid: nil, timeout:)
