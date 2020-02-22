@@ -79,7 +79,7 @@ module RSpec::Httpd
 
       unless wait_for_server(host: host, port: port, pid: pid, timeout: MAX_STARTUP_TIME)
         logger.error "server didn't start at http://#{host}:#{port} pid #{pid}: #{command}"
-        exit 1
+        exit! 1
       end
 
       logger.info "Started server at pid #{pid}: #{command}"
