@@ -35,7 +35,6 @@ module RSpec::Httpd
     # You can use this method to retrieve a client connection to a server
     # specified via host:, port:, and, optionally, a command.
     def start!(host: "0.0.0.0", port:, command:, logger: nil)
-      puts "start! command: #{command.inspect}"
       @servers ||= {}
       @servers[[host, port, command]] ||= command ? do_start(host, port, command) : check_server(host, port)
       @logger = logger if logger
